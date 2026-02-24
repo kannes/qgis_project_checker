@@ -1,0 +1,10 @@
+[general]
+name=Project Checker
+description=Check QGIS projects for potential issues
+about=TODO
+version=0.1
+qgisMinimumVersion=3.44
+author=Johannes Kröger
+email=qgis@johanneskroeger.de
+repository=https://github.com/kannes/qgis_project_checker
+supportsQt6=True
