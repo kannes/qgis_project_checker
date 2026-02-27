@@ -59,7 +59,7 @@ class AreThereMacrosAlgorithm(QgsProcessingAlgorithm):
             return {self.VERDICT: True, self.DETAILS: macros}
         else:
             feedback.pushInfo("No macros found.")
-            return {self.VERDICT: False, self.DETAILS: {}}
+            return {self.VERDICT: False, self.DETAILS: None}
 
     @classmethod
     def createInstance(cls):
