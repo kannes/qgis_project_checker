@@ -4,15 +4,18 @@ from qgis.core import (
     QgsProcessingAlgorithm,
     QgsProcessingContext,
     QgsProcessingFeedback,
-    QgsProcessingOutputVariant,
-    QgsProcessingParameterBoolean,
-    QgsProject,
+    QgsProcessingOutputBoolean,
+    QgsProcessingOutputString,
+    QgsProcessingParameterFile,
 )
 
+from project_checker.misc import project_from_file_or_running_qgis
 
-class CheckForMacrosAlgorithm(QgsProcessingAlgorithm):
-    INPUT = "INPUT"
-    OUTPUT = "OUTPUT"
+
+class AreThereMacrosAlgorithm(QgsProcessingAlgorithm):
+    PROJECT = "PROJECT"
+    VERDICT = "VERDICT"
+    DETAILS = "DETAILS"
 
     def name(self) -> str:
         return "macros"
@@ -27,27 +30,36 @@ class CheckForMacrosAlgorithm(QgsProcessingAlgorithm):
         return "executablecode"
 
     def shortHelpString(self) -> str:
-        return "Checks if the project contains macros (embedded Python code)"
+        return "Checks if the project contains macros (embedded Python code). If so, returns them as string."
 
     def initAlgorithm(self, config: Optional[dict[str, Any]] = None):
         self.addParameter(
-            QgsProcessingParameterBoolean(
-                self.INPUT, "A parameter is needed or we get no dialog from QGIS", optional=True
+            QgsProcessingParameterFile(
+                self.PROJECT,
+                "QGIS project file to check. If not set, the currently opened project will be checked",
+                optional=True,
+                fileFilter="Project Files (*.qgs *.qgz)",
             )
         )
-        self.addOutput(QgsProcessingOutputVariant(self.OUTPUT, "Output"))
+        self.addOutput(QgsProcessingOutputBoolean(self.VERDICT, "Verdict"))
+        self.addOutput(QgsProcessingOutputString(self.DETAILS, "Details"))
 
     def processAlgorithm(
-        self, parameters: dict[str, Any], context: QgsProcessingContext, feedback: QgsProcessingFeedback
+        self,
+        parameters: dict[str, Any],
+        context: QgsProcessingContext,
+        feedback: Optional["QgsProcessingFeedback"],
     ) -> dict[str, Any]:
-        macros: str
-        macros, _ = QgsProject.instance().readEntry("Macros", "/pythonCode")
+        file_path = self.parameterAsFile(parameters, self.PROJECT, context)
+        project = project_from_file_or_running_qgis(file_path, feedback)
+
+        macros, _ = project.readEntry("Macros", "/pythonCode")
         if macros:
             feedback.pushInfo("Macro(s) found.")
-            return {self.OUTPUT: macros}
+            return {self.VERDICT: True, self.DETAILS: macros}
         else:
             feedback.pushInfo("No macros found.")
-            return {}
+            return {self.VERDICT: False, self.DETAILS: {}}
 
     @classmethod
     def createInstance(cls):

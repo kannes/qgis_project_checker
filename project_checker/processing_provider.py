@@ -1,7 +1,7 @@
 from qgis.core import QgsProcessingProvider
 
-from project_checker.algorithms.macros import CheckForMacrosAlgorithm
-from project_checker.algorithms.expression_functions import CheckForExpressionFunctionsAlgorithm
+from project_checker.algorithms.macros import AreThereMacrosAlgorithm
+from project_checker.algorithms.expression_functions import AreThereExpressionFunctionsAlgorithm
 
 
 class ProjectCheckerAlgorithmProvider(QgsProcessingProvider):
@@ -12,5 +12,5 @@ class ProjectCheckerAlgorithmProvider(QgsProcessingProvider):
         return "Project Checker"
 
     def loadAlgorithms(self):
-        self.addAlgorithm(CheckForMacrosAlgorithm())
-        self.addAlgorithm(CheckForExpressionFunctionsAlgorithm())
+        self.addAlgorithm(AreThereMacrosAlgorithm())
+        self.addAlgorithm(AreThereExpressionFunctionsAlgorithm())
