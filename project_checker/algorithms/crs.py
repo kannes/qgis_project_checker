@@ -23,8 +23,8 @@ class CheckForCrsAlgorithm(QgsProcessingAlgorithm):
     OUTPUT = "OUTPUT"
 
     def name(self) -> str:
-        return "check_project_crs"      # returns internal ID of the Processing Algorithm
-
+        return "check_project_crs"      # returns a String
+                                        # used by QGIS as internal ID of the processing - algorithm
     def displayName(self) -> str:
         return "Check Project CRS"      # returns display name
 
