@@ -59,7 +59,7 @@ class AreThereExpressionFunctionsAlgorithm(QgsProcessingAlgorithm):
             return {self.VERDICT: True, self.DETAILS: expression_functions}
         else:
             feedback.pushInfo("No expression functions found.")
-            return {self.VERDICT: False, self.DETAILS: {}}
+            return {self.VERDICT: False, self.DETAILS: None}
 
     @classmethod
     def createInstance(cls):

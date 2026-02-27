@@ -1,10 +1,12 @@
 import logging
 
-from typing import Any, Optional
+from typing import Optional
 
 from qgis.PyQt.QtCore import QObject, Qt
+from qgis.PyQt.QtGui import QFont
 from qgis.PyQt.QtWidgets import (
     QFileDialog,
+    QFrame,
     QGridLayout,
     QHBoxLayout,
     QLabel,
@@ -12,6 +14,7 @@ from qgis.PyQt.QtWidgets import (
     QListWidget,
     QListWidgetItem,
     QPushButton,
+    QScrollArea,
     QVBoxLayout,
     QWidget,
     QWizard,
@@ -112,10 +115,19 @@ class SelectChecksPage(QWizardPage):
 
         self.__algorithm_list = QListWidget(self)
         self.__algorithm_helptext = AlgorithmInfoWidget(parent=self)
+        self.__select_all_button = QPushButton("Select All")
+        self.__select_none_button = QPushButton("Select None")
+
+        buttons_widget = QWidget(self)
+        buttons_layout = QHBoxLayout(buttons_widget)
+        buttons_layout.addWidget(self.__select_all_button)
+        buttons_layout.addWidget(self.__select_none_button)
+        buttons_layout.addStretch()
 
         layout = QGridLayout(self)
         layout.addWidget(self.__algorithm_list, 0, 0)
         layout.addWidget(self.__algorithm_helptext, 0, 1)
+        layout.addWidget(buttons_widget, 1, 0, 1, 2)
 
         for i, algorithm in enumerate(available_algorithms()):
             item = QListWidgetItem(self.__algorithm_list)
@@ -132,6 +144,9 @@ class SelectChecksPage(QWizardPage):
         # there is no explicit signal for qlwitems checkboxes so we cannot react on a single checkbox toggle
         self.__algorithm_list.itemChanged.connect(self.__update_selected_algorithms)
 
+        self.__select_all_button.clicked.connect(self.__select_all)
+        self.__select_none_button.clicked.connect(self.__select_none)
+
     def __update_algorithm_helptext(self, item) -> None:
         algorithm = item.data(Qt.ItemDataRole.UserRole)
         self.__algorithm_helptext.set_algorithm(algorithm)
@@ -144,33 +159,49 @@ class SelectChecksPage(QWizardPage):
             self.wizard().selected_algorithms.remove(algorithm)
         self.completeChanged.emit()
 
+    def __select_all(self):
+        for row in range(self.__algorithm_list.count()):
+            item = self.__algorithm_list.item(row)
+            item.setCheckState(Qt.CheckState.Checked)
+
+    def __select_none(self):
+        for row in range(self.__algorithm_list.count()):
+            item = self.__algorithm_list.item(row)
+            item.setCheckState(Qt.CheckState.Unchecked)
+
     def isComplete(self) -> bool:
         # enables the Next button
         # call whenever any item's checkbox changes
         return bool(self.wizard().selected_algorithms)
 
 
-class AlgorithmResultWidget(QWidget):
+class AlgorithmResultWidget(QFrame):
     def __init__(self, algorithm: Optional[QgsProcessingAlgorithm] = None, parent: Optional[QObject] = None) -> None:
         super().__init__(parent=parent)
         self.setObjectName(algorithm.id())  # for updating the widgets after running their task
 
-        self.__name_label = QLabel(algorithm.displayName(), self)
+        self.setFrameShape(QFrame.Shape.WinPanel)
+        self.setFrameShadow(QFrame.Shadow.Raised)
+
+        font = QFont()  # copy of the current font
+        font.setBold(True)
+
+        self.__name_label = QLabel(f"{algorithm.displayName()}", self)
+        self.__name_label.setFont(font)
         self.__details = QLabel(self)
         self.__verdict = QLabel("?", self)
-
-        self.setMinimumWidth(200)
-        self.setMaximumWidth(200)
+        self.__verdict.setFont(font)
 
         layout = QHBoxLayout(self)
         layout.addWidget(self.__name_label)
         layout.addWidget(self.__details)
+        layout.addStretch()
         layout.addWidget(self.__verdict)
-        layout.addStretch(True)
 
     def set_result(self, result: CheckerResult) -> None:
         self.__verdict.setText("❌" if result.verdict is True else "👍")  # yes, this is reversed! checks are negative
-        self.__details.setText(str(result.details))  # TODO make it look nice
+        if result.details:
+            self.__details.setText(str(result.details))  # TODO make it look nice
         if result.verdict is True:  # noqa
             self.setStyleSheet("background-color:red;")
         else:
@@ -187,16 +218,29 @@ class ChecksResultsPage(QWizardPage):
         execute_button = QPushButton("Execute Checks")
         execute_button.clicked.connect(self.__execute_checks)
 
-        self.layout = QVBoxLayout(self)
-        self.layout.addWidget(execute_button)
+        self.__results_container = QWidget(self)  # parent?
+        results_container_layout = QVBoxLayout()
+        self.__results_container.setLayout(results_container_layout)
+        # self.__results_container.setLayout(QVBoxLayout())
+        self.__results_scrollarea = QScrollArea(self)  # parent?
+        self.__results_scrollarea.setWidget(self.__results_container)
+        self.__results_scrollarea.setWidgetResizable(True)
+        self.__results_scrollarea.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOn)
+
+        layout = QVBoxLayout(self)
+        layout.addWidget(execute_button)  # TODO move to navigation?
+        layout.addWidget(self.__results_scrollarea)
+        # layout.addWidget(self.__results_container)
 
     def initializePage(self):
         logging.debug("initializePage")
 
-        # TODO put these in a scrollable pane, clear it every time in this function
+        for widget in self.__results_container.findChildren(AlgorithmResultWidget):
+            widget.deleteLater()
+
         for algorithm in self.wizard().selected_algorithms:
             widget = AlgorithmResultWidget(algorithm, self)
-            self.layout.addWidget(widget)
+            self.__results_container.layout().addWidget(widget)
 
     def __execute_checks(self):
         logging.debug("__execute_checks")

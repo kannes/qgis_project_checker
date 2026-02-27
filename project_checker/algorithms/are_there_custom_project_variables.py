@@ -12,25 +12,25 @@ from qgis.core import (
 from project_checker.misc import project_from_file_or_running_qgis
 
 
-class AreThereMacrosAlgorithm(QgsProcessingAlgorithm):
+class AreThereCustomProjectVariablesAlgorithm(QgsProcessingAlgorithm):
     PROJECT = "PROJECT"
     VERDICT = "VERDICT"
     DETAILS = "DETAILS"
 
     def name(self) -> str:
-        return "macros"
+        return "customprojectvariables"
 
     def displayName(self) -> str:
-        return "Macros"
+        return "Custom Project Variables"
 
     def group(self) -> str:
-        return "Executable Code"
+        return "Project Settings"
 
     def groupId(self) -> str:
-        return "executablecode"
+        return "projectsettings"
 
     def shortHelpString(self) -> str:
-        return "Checks if the project contains macros (embedded Python code). If so, returns them as string."
+        return "Checks if the project has custom variables (not layer variables)."
 
     def initAlgorithm(self, config: Optional[dict[str, Any]] = None):
         self.addParameter(
@@ -53,12 +53,12 @@ class AreThereMacrosAlgorithm(QgsProcessingAlgorithm):
         file_path = self.parameterAsFile(parameters, self.PROJECT, context)
         project = project_from_file_or_running_qgis(file_path, feedback)
 
-        macros, _ = project.readEntry("Macros", "/pythonCode")
-        if macros:
-            feedback.pushInfo("Macro(s) found.")
-            return {self.VERDICT: True, self.DETAILS: macros}
+        custom_variables = project.customVariables()
+        if bool(custom_variables):
+            feedback.pushInfo("Project has custom variables.")
+            return {self.VERDICT: True, self.DETAILS: custom_variables}
         else:
-            feedback.pushInfo("No macros found.")
+            feedback.pushInfo("Project does not have custom variables.")
             return {self.VERDICT: False, self.DETAILS: None}
 
     @classmethod

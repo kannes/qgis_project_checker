@@ -5,32 +5,32 @@ from qgis.core import (
     QgsProcessingContext,
     QgsProcessingFeedback,
     QgsProcessingOutputBoolean,
-    QgsProcessingOutputString,
+    QgsProcessingOutputVariant,
     QgsProcessingParameterFile,
 )
 
 from project_checker.misc import project_from_file_or_running_qgis
 
 
-class AreThereMacrosAlgorithm(QgsProcessingAlgorithm):
+class DoesTheProjectUseAbsolutePathsAlgorithm(QgsProcessingAlgorithm):
     PROJECT = "PROJECT"
     VERDICT = "VERDICT"
     DETAILS = "DETAILS"
 
     def name(self) -> str:
-        return "macros"
+        return "absolutepaths"
 
     def displayName(self) -> str:
-        return "Macros"
+        return "Absolute Paths"
 
     def group(self) -> str:
-        return "Executable Code"
+        return "Project Settings"
 
     def groupId(self) -> str:
-        return "executablecode"
+        return "projectsettings"
 
     def shortHelpString(self) -> str:
-        return "Checks if the project contains macros (embedded Python code). If so, returns them as string."
+        return "Checks if the project uses absolute paths."
 
     def initAlgorithm(self, config: Optional[dict[str, Any]] = None):
         self.addParameter(
@@ -42,7 +42,7 @@ class AreThereMacrosAlgorithm(QgsProcessingAlgorithm):
             )
         )
         self.addOutput(QgsProcessingOutputBoolean(self.VERDICT, "Verdict"))
-        self.addOutput(QgsProcessingOutputString(self.DETAILS, "Details"))
+        self.addOutput(QgsProcessingOutputVariant(self.DETAILS, "Details"))
 
     def processAlgorithm(
         self,
@@ -53,12 +53,12 @@ class AreThereMacrosAlgorithm(QgsProcessingAlgorithm):
         file_path = self.parameterAsFile(parameters, self.PROJECT, context)
         project = project_from_file_or_running_qgis(file_path, feedback)
 
-        macros, _ = project.readEntry("Macros", "/pythonCode")
-        if macros:
-            feedback.pushInfo("Macro(s) found.")
-            return {self.VERDICT: True, self.DETAILS: macros}
+        absolute_paths, _ = project.readEntry("Paths", "/Absolute")
+        if bool(absolute_paths):
+            feedback.pushInfo("Project uses absolute paths.")
+            return {self.VERDICT: True, self.DETAILS: None}
         else:
-            feedback.pushInfo("No macros found.")
+            feedback.pushInfo("Project does not use absolute paths.")
             return {self.VERDICT: False, self.DETAILS: None}
 
     @classmethod
