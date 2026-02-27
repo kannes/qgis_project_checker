@@ -170,8 +170,8 @@ class AlgorithmResultWidget(QWidget):
 
     def set_result(self, result: CheckerResult) -> None:
         self.__verdict.setText("❌" if result.verdict is True else "👍")  # yes, this is reversed! checks are negative
-        self.__details.setText(str(result.details))  # TODO aufbereiten
-        if verdict is True:  # noqa
+        self.__details.setText(str(result.details))  # TODO make it look nice
+        if result.verdict is True:  # noqa
             self.setStyleSheet("background-color:red;")
         else:
             self.setStyleSheet("background-color:green;")
